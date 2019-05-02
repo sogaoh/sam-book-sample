@@ -144,6 +144,12 @@ Resources:
       Principal: apigateway.amazonaws.com
 
 
+  PermPostHello:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref PostHello
+      Principal: apigateway.amazonaws.com
 
 
 
@@ -297,6 +303,22 @@ Resources:
             RestApiId: !Ref ApiGateway
             Path: /v1/users/{user_id}/microposts/{micropost_id}
             Method: delete
+
+
+  PostHello:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub ${ProjectName}-PostHello
+      CodeUri: ./handlers/api/post_hello
+      Role: !GetAtt LambdaRole.Arn
+      Handler: main
+      Events:
+        PostUsers:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: /v1/hello
+            Method: post
 
 
   MainTable:
