@@ -16,6 +16,9 @@ Parameters:
   DynamoTableVersion:
     Type: String
     Default: v0.1
+  BucketName:
+    Type: String
+    Default: sam-book-test
 
 
 Globals:
@@ -144,6 +147,12 @@ Resources:
       Principal: apigateway.amazonaws.com
 
 
+  PermPostHello:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref PostHello
+      Principal: apigateway.amazonaws.com
 
 
 
@@ -299,6 +308,22 @@ Resources:
             Method: delete
 
 
+  PostHello:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub ${ProjectName}-PostHello
+      CodeUri: ./handlers/api/post_hello
+      Role: !GetAtt LambdaRole.Arn
+      Handler: main
+      Events:
+        PostUsers:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: /v1/hello
+            Method: post
+
+
   MainTable:
     Type: AWS::DynamoDB::Table
     Properties:
@@ -321,3 +346,61 @@ Resources:
         WriteCapacityUnits: 1
       TableName: !Sub ${ProjectName}-${DynamoTableName}-${DynamoTableVersion}
 
+
+  # S3バケットの設定
+  S3Bucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub ${BucketName}
+      CorsConfiguration:
+        CorsRules:
+          - AllowedHeaders:
+              - Content-Type
+              - X-Amz-Date
+              - Authorizations
+              - X-Api-Key
+              - X-Amz-Security-Token
+              - WWW-Authenticate
+              - x-amz-content-sha256
+              - content-md5
+            AllowedMethods:
+              - GET
+              - PUT
+              - HEAD
+              - POST
+            AllowedOrigins:
+              - "*"
+            ExposedHeaders:
+              - ETag
+
+  # S3イベントをハンドルする Lambda の設定
+  S3Handler:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub ${ProjectName}-S3Handler
+      CodeUri: ./handlers/s3
+      Role: !GetAtt LambdaRole.Arn
+      Handler: main
+      MemorySize: 3008
+      Events:
+        S3:
+          Type: S3
+          Properties:
+            Bucket: !Ref S3Bucket
+            Events:
+              - s3:ObjectCreated:*
+
+
+  ScheduleHandler:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub ${ProjectName}-ScheduleHandler
+      CodeUri: ./handlers/schedule
+      Role: !GetAtt LambdaRole.Arn
+      Handler: main
+      Events:
+        CheckReservedPushNotification:
+          Type: Schedule
+          Properties:
+            Schedule: rate(5 minutes)
+            Input: "{\"action\": \"test\"}"

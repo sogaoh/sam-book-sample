@@ -23,6 +23,7 @@ var displayNames = map[string]string{
 	"micropost_id": "マイクロポストID",
 	"email":        "メールアドレス",
 	"content":      "本文",
+	"name":	        "名前",
 }
 
 func ConvertErrorsToMessage(errs map[string]error) map[string]string {
