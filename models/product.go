@@ -33,7 +33,7 @@ func (p *Product) PK() string {
 }
 
 func (p *Product) SK() string {
-	return getPK(p)
+	return getSK(p)
 }
 
 func (p *Product) PutToDynamo() error {
